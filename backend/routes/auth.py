@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
-from utils.user_data_handler import save_user_data
-import os
+from utils.user_data_handler import save_user_data, get_user_data
 
 auth_bp = Blueprint('auth', __name__)
 CORS(auth_bp)
@@ -21,9 +20,7 @@ def signup():
         'password': hashed_password
     }
 
-    db_path = os.path.join(os.getcwd(), 'users.json')
-
-    save_user_data(db_path, user_data)
+    save_user_data(user_data)
 
     return jsonify({"message": "User saved"}), 201
 
@@ -34,6 +31,18 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
+    user = get_user_data(email)
+
+    if user:
+
+        is_password_correct = bcrypt.check_password_hash(user['password'], password)
+
+        if is_password_correct:
+            return jsonify(user), 200
+        else:
+            return jsonify({"message": "Incorrect password"}), 200
+    else:
+        return jsonify({"message": "User not found"}), 404
 
 @auth_bp.route('/api/logout', methods=['GET'])
 def logout():
